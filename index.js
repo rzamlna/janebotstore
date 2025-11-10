@@ -3,8 +3,13 @@ import path from "path";
 import { fileURLToPath } from "url";
 import { Client, GatewayIntentBits, Partials, Collection } from "discord.js";
 import mongoose from "mongoose";
+import { cleanDuplicateGuildConfigs } from "./database/cleanduplicate.js";
 import dotenv from "dotenv";
 import chalk from "chalk";
+import { DisTube } from "distube";
+import { SpotifyPlugin } from "@distube/spotify";
+import { YtDlpPlugin } from "@distube/yt-dlp";
+
 dotenv.config();
 
 const __filename = fileURLToPath(import.meta.url);
@@ -16,14 +21,15 @@ const client = new Client({
     GatewayIntentBits.GuildMembers,
     GatewayIntentBits.GuildMessages,
     GatewayIntentBits.GuildMessageReactions,
-    GatewayIntentBits.MessageContent
+    GatewayIntentBits.MessageContent,
+    GatewayIntentBits.GuildVoiceStates // <-- penting untuk musik
   ],
   partials: [Partials.Message, Partials.Channel, Partials.Reaction]
 });
 
 client.commands = new Collection();
 
-// Load commands from subfolders
+// === LOAD COMMANDS ===
 const commandFolders = fs.readdirSync(path.join(__dirname, "commands"));
 for (const folder of commandFolders) {
   const folderPath = path.join(__dirname, "commands", folder);
@@ -39,7 +45,7 @@ for (const folder of commandFolders) {
   }
 }
 
-// Load events
+// === LOAD EVENTS ===
 const eventFiles = fs.readdirSync(path.join(__dirname, "events")).filter(f => f.endsWith(".js"));
 for (const file of eventFiles) {
   const imported = await import(`./events/${file}`);
@@ -48,18 +54,53 @@ for (const file of eventFiles) {
   console.log(chalk.blue(`[EVT] Loaded ${eventName}`));
 }
 
-// Connect MongoDB
-if (!process.env.MONGO_URI) console.warn("[DB] MONGO_URI not set in .env");
+// === CONNECT MONGODB ===
 mongoose.connect(process.env.MONGO_URI, { keepAlive: true })
-  .then(() => console.log(chalk.yellow("[DB] Connected to MongoDB")))
+  .then(async () => {
+    console.log(chalk.yellow("[DB] Connected to MongoDB"));
+    await cleanDuplicateGuildConfigs(); // 🧹 jalankan auto-clean
+  })
   .catch(err => console.error("[DB] Error:", err));
 
-// Start dashboard (optional)
+// === DISTUBE MUSIC SYSTEM ===
+client.distube = new DisTube(client, {
+  emitNewSongOnly: true,
+  plugins: [
+    new SpotifyPlugin(),
+    new YtDlpPlugin(),
+  ],
+});
+
+client.distube
+  .on("playSong", (queue, song) => {
+    queue.textChannel?.send({
+      content: `🎶 Memutar: **${song.name}** - \`${song.formattedDuration}\``,
+    });
+  })
+  .on("addSong", (queue, song) => {
+    queue.textChannel?.send({
+      content: `➕ Ditambahkan ke antrian: **${song.name}**`,
+    });
+  })
+  .on("error", (channel, error) => {
+    console.error(error);
+    channel?.send("❌ Terjadi kesalahan saat memutar musik.");
+  })
+  .on("finish", queue => {
+    queue.textChannel?.send("✅ Semua lagu telah selesai diputar, bot keluar dari channel.");
+  });
+
+// === OPTIONAL DASHBOARD ===
 try {
-  await import('./dashboard/server.js');
+  await import("./dashboard/server.js");
+  console.log(chalk.magenta("[DASHBOARD] Running on http://localhost:3000"));
 } catch (e) {
-  console.warn('Dashboard failed to load (optional):', e.message);
+  console.warn("Dashboard failed to load (optional):", e.message);
 }
 
+// === LOGIN DISCORD ===
 if (!process.env.TOKEN) console.error("TOKEN is not set in .env");
-client.login(process.env.TOKEN).catch(err => console.error('Login error:', err));
+client
+  .login(process.env.TOKEN)
+  .then(() => console.log(chalk.green("[BOT] Login berhasil!")))
+  .catch(err => console.error("Login error:", err));
