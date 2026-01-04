@@ -1,6 +1,6 @@
 import { buildStoreEmbed } from "./storeEmbed.js";
 
-const STORE_CHANNEL_ID = "1457398671443361843"; // channel JANESTORE
+const STORE_CHANNEL_ID = "1381529567084413009"; // channel JANESTORE
 const UPDATE_INTERVAL = 20000; // 20 detik
 
 let storeMessage = null;
