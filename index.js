@@ -6,9 +6,6 @@ import mongoose from "mongoose";
 import { cleanDuplicateGuildConfigs } from "./database/cleanduplicate.js";
 import dotenv from "dotenv";
 import chalk from "chalk";
-import { DisTube } from "distube";
-import { SpotifyPlugin } from "@distube/spotify";
-import { YtDlpPlugin } from "@distube/yt-dlp";
 
 dotenv.config();
 
@@ -21,8 +18,7 @@ const client = new Client({
     GatewayIntentBits.GuildMembers,
     GatewayIntentBits.GuildMessages,
     GatewayIntentBits.GuildMessageReactions,
-    GatewayIntentBits.MessageContent,
-    GatewayIntentBits.GuildVoiceStates // <-- penting untuk musik
+    GatewayIntentBits.MessageContent
   ],
   partials: [Partials.Message, Partials.Channel, Partials.Reaction]
 });
@@ -58,37 +54,9 @@ for (const file of eventFiles) {
 mongoose.connect(process.env.MONGO_URI, { keepAlive: true })
   .then(async () => {
     console.log(chalk.yellow("[DB] Connected to MongoDB"));
-    await cleanDuplicateGuildConfigs(); // 🧹 jalankan auto-clean
+    await cleanDuplicateGuildConfigs();
   })
   .catch(err => console.error("[DB] Error:", err));
-
-// === DISTUBE MUSIC SYSTEM ===
-client.distube = new DisTube(client, {
-  emitNewSongOnly: true,
-  plugins: [
-    new SpotifyPlugin(),
-    new YtDlpPlugin(),
-  ],
-});
-
-client.distube
-  .on("playSong", (queue, song) => {
-    queue.textChannel?.send({
-      content: `🎶 Memutar: **${song.name}** - \`${song.formattedDuration}\``,
-    });
-  })
-  .on("addSong", (queue, song) => {
-    queue.textChannel?.send({
-      content: `➕ Ditambahkan ke antrian: **${song.name}**`,
-    });
-  })
-  .on("error", (channel, error) => {
-    console.error(error);
-    channel?.send("❌ Terjadi kesalahan saat memutar musik.");
-  })
-  .on("finish", queue => {
-    queue.textChannel?.send("✅ Semua lagu telah selesai diputar, bot keluar dari channel.");
-  });
 
 // === OPTIONAL DASHBOARD ===
 try {

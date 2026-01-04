@@ -2,11 +2,13 @@ import mongoose from "mongoose";
 
 const guildConfigSchema = new mongoose.Schema({
   guildId: { type: String, required: true, unique: true },
-  welcomeChannelId: String,
-  autoRoleId: String,
-  verifyMessageId: String,
-  verifyRoleId: String,
-  modLogChannelId: String
+
+  // VERIFY
+  verifyRoleId: { type: String, default: null },
+  verifyMessageId: { type: String, default: null },
 });
 
-export const GuildConfig = mongoose.model("GuildConfig", guildConfigSchema);
+export const GuildConfig = mongoose.model(
+  "GuildConfig",
+  guildConfigSchema
+);

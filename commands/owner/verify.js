@@ -3,36 +3,40 @@ import {
   EmbedBuilder,
   ButtonBuilder,
   ButtonStyle,
-  ActionRowBuilder
+  ActionRowBuilder,
 } from "discord.js";
 import { GuildConfig } from "../../database/guildConfig.js";
 
 export default {
+  category: "owner",
   data: new SlashCommandBuilder()
     .setName("verify-button")
-    .setDescription("Send a verification message with a button (owner only)"),
+    .setDescription("Kirim pesan verify dengan tombol"),
 
   async execute(interaction) {
-    // hanya owner yang bisa jalankan
     if (interaction.user.id !== process.env.OWNER_ID) {
       return interaction.reply({
-        content: "🚫 Only the bot owner can use this command.",
-        ephemeral: true
+        content: "🚫 Owner only.",
+        ephemeral: true,
       });
     }
 
-    const config = await GuildConfig.findOne({ guildId: interaction.guild.id });
-    if (!config?.verifyRoleId)
+    const config = await GuildConfig.findOne({
+      guildId: interaction.guild.id,
+    });
+
+    if (!config || !config.verifyRoleId) {
       return interaction.reply({
         content:
-          "⚠️ Verify role belum diset! Gunakan command /setup-verifyrole [role] terlebih dahulu.",
-        ephemeral: true
+          "⚠️ Verify role belum diset. Gunakan /setup-verifyrole dulu.",
+        ephemeral: true,
       });
+    }
 
     const embed = new EmbedBuilder()
       .setTitle("✅ Verification")
-      .setDescription("Press the button below to get verified!")
-      .setColor("#2b2d31");
+      .setDescription("Klik tombol di bawah untuk mendapatkan role.")
+      .setColor("#00FF99");
 
     const button = new ButtonBuilder()
       .setCustomId("verify_button")
@@ -44,15 +48,15 @@ export default {
     const msg = await interaction.reply({
       embeds: [embed],
       components: [row],
-      fetchReply: true
+      fetchReply: true,
     });
 
     config.verifyMessageId = msg.id;
     await config.save();
 
     await interaction.followUp({
-      content: "✅ Verification button sent successfully!",
-      ephemeral: true
+      content: "✅ Verify message berhasil dikirim.",
+      ephemeral: true,
     });
-  }
+  },
 };
