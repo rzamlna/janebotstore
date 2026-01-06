@@ -148,7 +148,7 @@ export default async (client, interaction) => {
       });
 
       await interaction.reply({
-        content: "✅ Order ticket berhasil dibuat.",
+        content: `✅ Order ticket berhasil dibuat ${channel}`,
         ephemeral: true,
       });
       return;
@@ -306,4 +306,5 @@ export default async (client, interaction) => {
     }
   }
 };
+
 
