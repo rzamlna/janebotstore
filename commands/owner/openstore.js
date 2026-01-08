@@ -4,43 +4,49 @@ export default {
   category: "owner",
   data: new SlashCommandBuilder()
     .setName("openstore")
-    .setDescription("Buka store (rename voice channel ke STORE OPEN)"),
+    .setDescription("Buka store dan kirim pengumuman"),
 
   async execute(interaction) {
-    // OWNER ONLY
     if (interaction.user.id !== process.env.OWNER_ID) {
       return interaction.reply({
-        content: "🚫 Hanya owner yang bisa menggunakan command ini.",
+        content: "🚫 hanya owner yang bisa pakai command ini",
         ephemeral: true,
       });
     }
 
-    const channelId = process.env.STORE_CHANNEL_ID;
-    const channel = await interaction.client.channels
-      .fetch(channelId)
-      .catch(() => null);
+    const voiceChannel = await interaction.guild.channels.fetch(
+      process.env.STORE_VOICE_CHANNEL_ID
+    );
+    const announceChannel = await interaction.guild.channels.fetch(
+      process.env.ANNOUNCEMENT_CHANNEL_ID
+    );
 
-    if (!channel) {
-      return interaction.reply({
-        content: "❌ Channel store tidak ditemukan.",
-        ephemeral: true,
-      });
-    }
+    // edit nama channel voice
+    await voiceChannel.setName("🟢|STORE OPEN");
 
-    // RENAME CHANNEL
-    await channel.setName("🟢┃STORE-OPEN");
-
-    // LOCK VOICE CHANNEL (TIDAK BISA JOIN)
-    await channel.permissionOverwrites.edit(
+    // pastikan voice channel terkunci
+    await voiceChannel.permissionOverwrites.edit(
       interaction.guild.roles.everyone,
       {
         Connect: false,
-        Speak: false,
       }
     );
 
+    // kirim announcement
+    const roleMention = `<@&${process.env.ANNOUNCE_ROLE_ID}>`;
+
+    await announceChannel.send(
+      `${roleMention}\n\n` +
+      "**STORE OPEN**\n\n" +
+      "janestore udah buka ya.\n" +
+      "kalau mau order langsung gas aja, stok ready.\n\n" +
+      "proses cepat, aman, dan jelas.\n" +
+      "Terimakasih - JANESTORE"
+    );
+
     await interaction.reply({
-      content: "✅ Store berhasil dibuka (voice channel tetap terkunci).",
+      content: "✅ store berhasil dibuka",
+      ephemeral: true,
     });
   },
 };
