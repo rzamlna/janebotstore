@@ -1,57 +1,40 @@
 import { buildStoreEmbed } from "./storeEmbed.js";
 
 const STORE_CHANNEL_ID = process.env.STORE_CHANNEL_ID;
-const UPDATE_INTERVAL = 10; // ⬅️ 10 detik
+const UPDATE_INTERVAL = 5000; // ⬅️ 5 detik (ms)
+
+let storeMessage = null;
+let intervalStarted = false;
 
 export async function initStore(client) {
-  if (!STORE_CHANNEL_ID) {
-    console.log("❌ STORE_CHANNEL_ID belum diset");
-    return;
-  }
+  if (intervalStarted) return; // ⬅️ PENTING: cegah double interval
+  intervalStarted = true;
 
   const channel = await client.channels.fetch(STORE_CHANNEL_ID);
-  if (!channel || !channel.isTextBased()) {
-    console.log("❌ Store channel tidak valid");
-    return;
-  }
+  if (!channel || !channel.isTextBased()) return;
 
   const messages = await channel.messages.fetch({ limit: 5 });
-  let storeMessage = messages.find(
+  storeMessage = messages.find(
     (m) => m.author.id === client.user.id && m.embeds.length
   );
 
-  let secondsLeft = UPDATE_INTERVAL;
-
-  // ==========================
-  // KIRIM EMBED PERTAMA KALI
-  // ==========================
   if (!storeMessage) {
-    const { embed, row } = buildStoreEmbed(secondsLeft);
+    const { embed, row } = buildStoreEmbed();
     storeMessage = await channel.send({
       embeds: [embed],
       components: row ? [row] : [],
     });
   }
 
-  // ==========================
-  // LOOP UPDATE (SETIAP 1 DETIK)
-  // ==========================
   setInterval(async () => {
     try {
-      const { embed, row } = buildStoreEmbed(secondsLeft);
-
+      const { embed, row } = buildStoreEmbed();
       await storeMessage.edit({
         embeds: [embed],
         components: row ? [row] : [],
       });
-
-      secondsLeft--;
-
-      if (secondsLeft < 0) {
-        secondsLeft = UPDATE_INTERVAL;
-      }
     } catch (err) {
-      console.error("Live stock update failed:", err.message);
+      console.error("Live stock update error:", err.message);
     }
-  }, 1000);
-      }
+  }, UPDATE_INTERVAL);
+}
