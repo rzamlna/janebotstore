@@ -1,37 +1,36 @@
 import { buildStoreEmbed } from "./storeEmbed.js";
 
 const STORE_CHANNEL_ID = process.env.STORE_CHANNEL_ID;
+const REFRESH_INTERVAL = 8000; // 8 detik
 
 let storeMessage = null;
 let lastUpdate = Date.now();
-let started = false;
 
-// ==========================
-// FORMAT "UPDATED X SECONDS AGO"
-// ==========================
-function formatAgo(ms) {
-  const sec = Math.floor(ms / 1000);
-  if (sec <= 1) return "just now";
-  return `${sec} seconds ago`;
-}
-
-// ==========================
-// INIT STORE (DIPANGGIL DI ready.js)
-// ==========================
 export async function initStore(client) {
-  if (started) return;
-  started = true;
+  if (!STORE_CHANNEL_ID) {
+    console.log("❌ STORE_CHANNEL_ID belum diset");
+    return;
+  }
 
   const channel = await client.channels.fetch(STORE_CHANNEL_ID);
-  if (!channel || !channel.isTextBased()) return;
+  if (!channel || !channel.isTextBased()) {
+    console.log("❌ Store channel tidak valid");
+    return;
+  }
 
-  const messages = await channel.messages.fetch({ limit: 10 });
+  // ==========================
+  // CARI MESSAGE LAMA
+  // ==========================
+  const messages = await channel.messages.fetch({ limit: 5 });
   storeMessage = messages.find(
     (m) => m.author.id === client.user.id && m.embeds.length
   );
 
+  // ==========================
+  // JIKA BELUM ADA → KIRIM BARU
+  // ==========================
   if (!storeMessage) {
-    const { embed, row } = buildStoreEmbed("just now");
+    const { embed, row } = buildStoreEmbed(lastUpdate);
     storeMessage = await channel.send({
       embeds: [embed],
       components: row ? [row] : [],
@@ -39,24 +38,21 @@ export async function initStore(client) {
   }
 
   // ==========================
-  // UPDATE EMBED TIAP 1 DETIK (RINGAN)
+  // AUTO REFRESH TIAP 8 DETIK
   // ==========================
   setInterval(async () => {
     try {
-      const ago = formatAgo(Date.now() - lastUpdate);
-      const { embed, row } = buildStoreEmbed(ago);
+      lastUpdate = Date.now();
+      const { embed, row } = buildStoreEmbed(lastUpdate);
 
       await storeMessage.edit({
         embeds: [embed],
         components: row ? [row] : [],
       });
-    } catch {}
-  }, 1000);
-}
+    } catch (err) {
+      console.error("Store refresh error:", err.message);
+    }
+  }, REFRESH_INTERVAL);
 
-// ==========================
-// PANGGIL SETIAP STOCK BERUBAH
-// ==========================
-export function markStoreUpdated() {
-  lastUpdate = Date.now();
+  console.log("🛒 LIVE STOCK JANESTORE aktif (refresh 8 detik)");
 }
