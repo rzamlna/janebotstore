@@ -9,6 +9,7 @@ import {
   TextInputStyle,
 } from "discord.js";
 import fs from "fs";
+import { markStoreUpdated } from "../store/storeService.js";
 
 const OWNER_ID = process.env.OWNER_ID;
 const STORE_TICKET_CATEGORY_ID = "1111676525171986522";
@@ -88,8 +89,7 @@ export default async (client, interaction) => {
 
       if (item.stock < qty) {
         return interaction.reply({
-          content:
-            `⚠️ Stok tidak mencukupi\nStok: ${item.stock}\nDiminta: ${qty}`,
+          content: `⚠️ Stok tidak mencukupi\nStok: ${item.stock}\nDiminta: ${qty}`,
           ephemeral: true,
         });
       }
@@ -99,10 +99,7 @@ export default async (client, interaction) => {
         type: 0,
         parent: STORE_TICKET_CATEGORY_ID,
         permissionOverwrites: [
-          {
-            id: interaction.guild.roles.everyone.id,
-            deny: ["ViewChannel"],
-          },
+          { id: interaction.guild.roles.everyone.id, deny: ["ViewChannel"] },
           {
             id: interaction.user.id,
             allow: ["ViewChannel", "SendMessages", "EmbedLinks"],
@@ -120,11 +117,10 @@ export default async (client, interaction) => {
         .addFields(
           { name: "Item", value: item.name, inline: true },
           { name: "Jumlah", value: `${qty}`, inline: true },
-          { name: "Username", value: username, inline: false },
+          { name: "Username", value: username },
           {
             name: "Total",
             value: `Rp${(item.price * qty).toLocaleString()}`,
-            inline: false,
           }
         )
         .setDescription("Menunggu konfirmasi admin.");
@@ -142,9 +138,7 @@ export default async (client, interaction) => {
       await channel.send({
         content: `<@${interaction.user.id}>`,
         embeds: [embed],
-        components: [
-          new ActionRowBuilder().addComponents(cancelBtn, successBtn),
-        ],
+        components: [new ActionRowBuilder().addComponents(cancelBtn, successBtn)],
       });
 
       await interaction.reply({
@@ -174,9 +168,7 @@ export default async (client, interaction) => {
         ephemeral: true,
       });
 
-      setTimeout(() => {
-        interaction.channel?.delete().catch(() => null);
-      }, 3000);
+      setTimeout(() => interaction.channel?.delete().catch(() => null), 3000);
       return;
     }
 
@@ -199,13 +191,6 @@ export default async (client, interaction) => {
       const buyerId = data.user;
       const buyerUsername = data.username || "-";
 
-      if (!code || !Number.isInteger(qty)) {
-        return interaction.reply({
-          content: "❌ Data order rusak.",
-          ephemeral: true,
-        });
-      }
-
       const store = JSON.parse(fs.readFileSync(STORE_PATH));
       const item = store.items.find(i => i.code === code);
 
@@ -221,18 +206,17 @@ export default async (client, interaction) => {
       // ==========================
       item.stock -= qty;
       item.sold = (item.sold ?? 0) + qty;
-
       fs.writeFileSync(STORE_PATH, JSON.stringify(store, null, 2));
+
+      // 🔥 PENTING: trigger live stock update
+      markStoreUpdated();
 
       // ==========================
       // ORDER LOG
       // ==========================
       if (ORDER_LOG_CHANNEL_ID) {
         try {
-          const logChannel = await client.channels.fetch(
-            ORDER_LOG_CHANNEL_ID
-          );
-
+          const logChannel = await client.channels.fetch(ORDER_LOG_CHANNEL_ID);
           if (logChannel?.isTextBased()) {
             const logEmbed = new EmbedBuilder()
               .setTitle("✅ ORDER SUKSES")
@@ -242,16 +226,9 @@ export default async (client, interaction) => {
                 { name: "Username", value: buyerUsername, inline: true },
                 { name: "Item", value: item.name, inline: true },
                 { name: "Jumlah", value: `${qty}`, inline: true },
-                {
-                  name: "Total",
-                  value: `Rp${(item.price * qty).toLocaleString()}`,
-                },
+                { name: "Total", value: `Rp${(item.price * qty).toLocaleString()}` },
                 { name: "Sisa Stok", value: `${item.stock}`, inline: true },
-                {
-                  name: "Diproses oleh",
-                  value: `<@${interaction.user.id}>`,
-                  inline: true,
-                }
+                { name: "Diproses oleh", value: `<@${interaction.user.id}>`, inline: true }
               )
               .setTimestamp();
 
@@ -263,14 +240,11 @@ export default async (client, interaction) => {
       }
 
       await interaction.reply({
-        content:
-          `✅ Order berhasil.\nSisa stok **${item.name}**: ${item.stock}`,
+        content: `✅ Order berhasil.\nSisa stok **${item.name}**: ${item.stock}`,
         ephemeral: true,
       });
 
-      setTimeout(() => {
-        interaction.channel?.delete().catch(() => null);
-      }, 3000);
+      setTimeout(() => interaction.channel?.delete().catch(() => null), 3000);
       return;
     }
   }
@@ -284,18 +258,6 @@ export default async (client, interaction) => {
   if (!command) return;
 
   try {
-    if (hasStoreAccess(interaction.member)) {
-      await command.execute(interaction);
-      return;
-    }
-
-    if (command.category === "admin") {
-      return interaction.reply({
-        content: "🚫 Kamu tidak punya izin.",
-        ephemeral: true,
-      });
-    }
-
     await command.execute(interaction);
   } catch (err) {
     console.error(err);
@@ -307,4 +269,3 @@ export default async (client, interaction) => {
     }
   }
 };
-
