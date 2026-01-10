@@ -7,14 +7,14 @@ import fs from "fs";
 
 const STORE_PATH = "./store/storeData.json";
 
-export function buildStoreEmbed() {
+export function buildStoreEmbed(secondsLeft = 10) {
   const data = JSON.parse(fs.readFileSync(STORE_PATH));
 
   const embed = new EmbedBuilder()
     .setColor("#00FF99")
-    .setTitle("🛒 JANESTORE")
-    .setDescription("Pilih item lalu lanjutkan order")
-    .setFooter({ text: "Auto update • JANESTORE" })
+    .setTitle("📊 LIVE STOCK — JANESTORE")
+    .setDescription(`🔄 Update in **${secondsLeft} seconds**`)
+    .setFooter({ text: "JANESTORE • Live Stock" })
     .setTimestamp();
 
   // ==========================
@@ -30,28 +30,33 @@ export function buildStoreEmbed() {
   }
 
   // ==========================
-  // LIST ITEM (PAKAI CODE)
+  // LIST ITEM (FORMAT RAPINH)
   // ==========================
-  data.items.forEach((item) => {
-    embed.addFields({
-      name: `${item.name} 〔${item.code.toUpperCase()}〕`,
-      value:
-        `💰 Harga: **Rp${item.price.toLocaleString()}**\n` +
-        `📦 Stok: **${item.stock}**`,
-      inline: false,
-    });
+  let stockText = "";
+
+  for (const item of data.items) {
+    stockText +=
+      `${item.name}\n` +
+      `ID    : ${item.code}\n` +
+      `Stock : ${item.stock}\n` +
+      `Price : Rp${item.price.toLocaleString()}\n\n`;
+  }
+
+  embed.addFields({
+    name: "📦 Produk",
+    value: "```" + stockText + "```",
   });
 
   // ==========================
-  // DROPDOWN SELECT ITEM (VALUE = CODE)
+  // DROPDOWN SELECT ITEM
   // ==========================
   const selectMenu = new StringSelectMenuBuilder()
     .setCustomId("store_select_item")
-    .setPlaceholder("Pilih item")
+    .setPlaceholder("Pilih item untuk order")
     .addOptions(
       data.items.map((item) => ({
         label: item.name,
-        value: item.code, // ⬅️ PAKAI CODE, BUKAN NAME
+        value: item.code, // pakai CODE
         description: `Rp${item.price.toLocaleString()} | stok ${item.stock}`,
       }))
     );
