@@ -103,28 +103,27 @@ export default async (client) => {
 // BUILD STATUS EMBED
 // ==========================
 function buildStatusEmbed(client) {
-  const uptimeSeconds = Math.floor(
-    (Date.now() - (client.readyTimestamp || Date.now())) / 1000
-  );
-
   const totalUsers = client.guilds.cache.reduce(
     (acc, g) => acc + (g.memberCount || 0),
     0
   );
 
+  const secondsAgo = Math.floor(
+    (Date.now() - lastStatusUpdate) / 1000
+  );
+
   return new EmbedBuilder()
     .setColor("#00FF99")
     .setTitle("🤖 JANE BOT STATUS")
-    .addFields(
-      { name: "Status", value: "🟢 Online", inline: true },
-      { name: "Servers", value: `${client.guilds.cache.size}`, inline: true },
-      { name: "Users", value: `${totalUsers}`, inline: true },
-      {
-        name: "Uptime",
-        value: `<t:${Math.floor(Date.now() / 1000 - uptimeSeconds)}:R>`,
-        inline: false,
-      }
+    .setDescription(
+      `🟢 Updated ${secondsAgo <= 1 ? "just now" : `${secondsAgo} seconds ago`}`
     )
-    .setFooter({ text: "Auto update setiap 30 detik" })
+    .addFields(
+      { name: "Status", value: "Online", inline: true },
+      { name: "Servers", value: `${client.guilds.cache.size}`, inline: true },
+      { name: "Users", value: `${totalUsers}`, inline: true }
+    )
+    .setFooter({ text: "Auto update every 30 seconds" })
     .setTimestamp();
 }
+
