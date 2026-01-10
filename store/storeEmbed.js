@@ -7,17 +7,13 @@ import fs from "fs";
 
 const STORE_PATH = "./store/storeData.json";
 
-export function buildStoreEmbed(lastUpdateTs) {
+export function buildStoreEmbed() {
   const data = JSON.parse(fs.readFileSync(STORE_PATH));
-
-  const secondsAgo = Math.floor((Date.now() - lastUpdateTs) / 1000);
-  const updateText =
-    secondsAgo <= 1 ? "just now" : `${secondsAgo} seconds ago`;
 
   const embed = new EmbedBuilder()
     .setColor("#00FF99")
     .setTitle("📊 LIVE STOCK — JANESTORE")
-    .setDescription(`🟢 Updated ${updateText}`)
+    .setDescription("🟢 Updated just now")
     .setFooter({ text: "JANESTORE • Live Stock" })
     .setTimestamp();
 
@@ -29,6 +25,7 @@ export function buildStoreEmbed(lastUpdateTs) {
       name: "📦 Produk",
       value: "Belum ada produk tersedia",
     });
+
     return { embed, row: null };
   }
 
@@ -58,7 +55,7 @@ export function buildStoreEmbed(lastUpdateTs) {
     .setCustomId("store_select_item")
     .setPlaceholder("Pilih item untuk order")
     .addOptions(
-      data.items.map((item) => ({
+      data.items.map(item => ({
         label: item.name,
         value: item.code,
         description: `Rp${item.price.toLocaleString()} | stok ${item.stock}`,
@@ -68,4 +65,4 @@ export function buildStoreEmbed(lastUpdateTs) {
   const row = new ActionRowBuilder().addComponents(selectMenu);
 
   return { embed, row };
-}
+                    }
