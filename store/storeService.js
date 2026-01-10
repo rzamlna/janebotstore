@@ -1,19 +1,15 @@
 import { buildStoreEmbed } from "./storeEmbed.js";
 
 let storeMessage = null;
-let lastUpdate = Date.now();
 
-// 🔥 DIPANGGIL SAAT RESTOCK / ORDER SUCCESS
 export function markStoreUpdated() {
-  lastUpdate = Date.now();
+  // sekarang kosong, tapi tetap dipanggil
+  // biar struktur rapi & future-proof
 }
 
 export async function initStore(client) {
   const CHANNEL_ID = process.env.STORE_CHANNEL_ID;
-  if (!CHANNEL_ID) {
-    console.log("[STORE] STORE_CHANNEL_ID belum diset");
-    return;
-  }
+  if (!CHANNEL_ID) return;
 
   const channel = await client.channels.fetch(CHANNEL_ID);
   if (!channel?.isTextBased()) return;
@@ -23,19 +19,18 @@ export async function initStore(client) {
     m => m.author.id === client.user.id && m.embeds.length
   );
 
-  // JIKA BELUM ADA MESSAGE → BUAT
   if (!storeMessage) {
-    const { embed, row } = buildStoreEmbed(lastUpdate);
+    const { embed, row } = buildStoreEmbed();
     storeMessage = await channel.send({
       embeds: [embed],
       components: row ? [row] : [],
     });
   }
 
-  // 🔁 AUTO REFRESH TIAP 8 DETIK
+  // 🔁 REFRESH SETIAP 8 DETIK
   setInterval(async () => {
     try {
-      const { embed, row } = buildStoreEmbed(lastUpdate);
+      const { embed, row } = buildStoreEmbed();
       await storeMessage.edit({
         embeds: [embed],
         components: row ? [row] : [],
