@@ -1,4 +1,3 @@
-// store/storeEmbed.js
 import {
   EmbedBuilder,
   ActionRowBuilder,
@@ -34,7 +33,7 @@ export function buildStoreEmbed(lastUpdateTs) {
   }
 
   // ==========================
-  // LIST ITEM
+  // LIST ITEM (STOCK + SOLD)
   // ==========================
   let text = "";
 
@@ -67,5 +66,6 @@ export function buildStoreEmbed(lastUpdateTs) {
     );
 
   const row = new ActionRowBuilder().addComponents(selectMenu);
+
   return { embed, row };
 }
