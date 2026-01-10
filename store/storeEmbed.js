@@ -7,23 +7,27 @@ import fs from "fs";
 
 const STORE_PATH = "./store/storeData.json";
 
-export function buildStoreEmbed(animation = ".") {
+export function buildStoreEmbed(countdown) {
   const data = JSON.parse(fs.readFileSync(STORE_PATH));
 
   const embed = new EmbedBuilder()
     .setColor("#00FF99")
     .setTitle("📊 LIVE STOCK — JANESTORE")
-    .setDescription(`🔄 Updating${animation}`)
+    .setDescription(
+      typeof countdown === "number"
+        ? `🔄 Update in ${countdown}s`
+        : "🔄 Updating..."
+    )
     .setFooter({ text: "JANESTORE • Live Stock" })
     .setTimestamp();
 
   // ==========================
   // JIKA BELUM ADA ITEM
   // ==========================
-  if (!data.items || data.items.length === 0) {
+  if (!Array.isArray(data.items) || data.items.length === 0) {
     embed.addFields({
-      name: "Belum ada item",
-      value: "Admin belum menambahkan produk",
+      name: "📦 Produk",
+      value: "```Belum ada item```",
     });
 
     return { embed, row: null };
@@ -47,7 +51,7 @@ export function buildStoreEmbed(animation = ".") {
 
   embed.addFields({
     name: "📦 Produk",
-    value: "```" + stockText + "```",
+    value: "```" + stockText.trimEnd() + "```",
   });
 
   // ==========================
@@ -57,7 +61,7 @@ export function buildStoreEmbed(animation = ".") {
     .setCustomId("store_select_item")
     .setPlaceholder("Pilih item untuk order")
     .addOptions(
-      data.items.map((item) => ({
+      data.items.map(item => ({
         label: item.name,
         value: item.code,
         description: `Rp${item.price.toLocaleString()} | stok ${item.stock}`,
@@ -67,4 +71,4 @@ export function buildStoreEmbed(animation = ".") {
   const row = new ActionRowBuilder().addComponents(selectMenu);
 
   return { embed, row };
-    }
+}
