@@ -7,25 +7,35 @@ import fs from "fs";
 
 const STORE_PATH = "./store/storeData.json";
 
-export function buildStoreEmbed() {
+export function buildStoreEmbed(lastUpdate = Date.now()) {
   const data = JSON.parse(fs.readFileSync(STORE_PATH));
+
+  const secondsAgo = Math.floor((Date.now() - lastUpdate) / 1000);
 
   const embed = new EmbedBuilder()
     .setColor("#00FF99")
     .setTitle("📊 LIVE STOCK — JANESTORE")
-    .setDescription("🟢 Updated just now")
+    .setDescription(
+      `🟢 Updated ${secondsAgo <= 1 ? "just now" : `${secondsAgo} seconds ago`}`
+    )
     .setFooter({ text: "JANESTORE • Live Stock" })
-    .setTimestamp(); // ⬅️ PENTING (reset setiap refresh)
+    .setTimestamp();
 
+  // ==========================
+  // JIKA BELUM ADA ITEM
+  // ==========================
   if (!data.items || data.items.length === 0) {
     embed.addFields({
       name: "📦 Produk",
-      value: "Belum ada item",
+      value: "Belum ada produk tersedia",
     });
 
     return { embed, row: null };
   }
 
+  // ==========================
+  // LIST ITEM (STOCK + SOLD)
+  // ==========================
   let text = "";
 
   for (const item of data.items) {
@@ -42,18 +52,21 @@ export function buildStoreEmbed() {
     value: "```" + text + "```",
   });
 
-  const select = new StringSelectMenuBuilder()
+  // ==========================
+  // DROPDOWN PILIH ITEM
+  // ==========================
+  const selectMenu = new StringSelectMenuBuilder()
     .setCustomId("store_select_item")
     .setPlaceholder("Pilih item untuk order")
     .addOptions(
-      data.items.map(i => ({
-        label: i.name,
-        value: i.code,
-        description: `Rp${i.price.toLocaleString()} | stok ${i.stock}`,
+      data.items.map((item) => ({
+        label: item.name,
+        value: item.code,
+        description: `Rp${item.price.toLocaleString()} | stok ${item.stock}`,
       }))
     );
 
-  const row = new ActionRowBuilder().addComponents(select);
+  const row = new ActionRowBuilder().addComponents(selectMenu);
 
   return { embed, row };
 }
