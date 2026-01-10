@@ -4,16 +4,18 @@ const STORE_CHANNEL_ID = process.env.STORE_CHANNEL_ID;
 
 let storeMessage = null;
 let countdown = 5;
+let intervalStarted = false;
 
 export async function initStore(client) {
+  if (intervalStarted) return; // ⬅️ PENTING
+  intervalStarted = true;
+
   const channel = await client.channels.fetch(STORE_CHANNEL_ID);
   if (!channel || !channel.isTextBased()) {
     throw new Error("STORE_CHANNEL_ID tidak valid");
   }
 
-  // ==========================
-  // CARI MESSAGE LAMA
-  // ==========================
+  // cari message lama
   const messages = await channel.messages.fetch({ limit: 10 });
   storeMessage = messages.find(
     m => m.author.id === client.user.id && m.embeds.length
@@ -28,27 +30,23 @@ export async function initStore(client) {
   }
 
   // ==========================
-  // HITUNG MUNDUR REALTIME
+  // INTERVAL TUNGGAL
   // ==========================
   setInterval(async () => {
     try {
-      if (countdown > 0) {
-        const { embed, row } = buildStoreEmbed(countdown);
-        await storeMessage.edit({
-          embeds: [embed],
-          components: row ? [row] : [],
-        });
-        countdown--;
-      } else {
-        const { embed, row } = buildStoreEmbed("...");
-        await storeMessage.edit({
-          embeds: [embed],
-          components: row ? [row] : [],
-        });
-        countdown = 5; // reset
-      }
+      const { embed, row } =
+        countdown > 0
+          ? buildStoreEmbed(countdown)
+          : buildStoreEmbed("...");
+
+      await storeMessage.edit({
+        embeds: [embed],
+        components: row ? [row] : [],
+      });
+
+      countdown = countdown > 0 ? countdown - 1 : 5;
     } catch (err) {
-      console.error("Store embed update error:", err.message);
+      console.error("Store update error:", err.message);
     }
-  }, 1000); // ⬅️ 1 DETIK, CEPAT, STABIL
-        }
+  }, 1500); // ⬅️ 1.5 detik (LEBIH STABIL DARI 1 DETIK)
+}
