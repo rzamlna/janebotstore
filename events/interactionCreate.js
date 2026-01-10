@@ -216,8 +216,12 @@ export default async (client, interaction) => {
         });
       }
 
-      // kurangi stok
+      // ==========================
+      // UPDATE STOCK + SOLD
+      // ==========================
       item.stock -= qty;
+      item.sold = (item.sold ?? 0) + qty;
+
       fs.writeFileSync(STORE_PATH, JSON.stringify(store, null, 2));
 
       // ==========================
@@ -229,33 +233,30 @@ export default async (client, interaction) => {
             ORDER_LOG_CHANNEL_ID
           );
 
-          const logEmbed = new EmbedBuilder()
-            .setTitle("✅ ORDER SUKSES")
-            .setColor("#00FF99")
-            .addFields(
-              { name: "User", value: `<@${buyerId}>`, inline: true },
-              { name: "Username", value: buyerUsername, inline: true },
-              { name: "Item", value: item.name, inline: true },
-              { name: "Jumlah", value: `${qty}`, inline: true },
-              {
-                name: "Total",
-                value: `Rp${(item.price * qty).toLocaleString()}`,
-                inline: false,
-              },
-              {
-                name: "Sisa Stok",
-                value: `${item.stock}`,
-                inline: true,
-              },
-              {
-                name: "Diproses oleh",
-                value: `<@${interaction.user.id}>`,
-                inline: true,
-              }
-            )
-            .setTimestamp();
+          if (logChannel?.isTextBased()) {
+            const logEmbed = new EmbedBuilder()
+              .setTitle("✅ ORDER SUKSES")
+              .setColor("#00FF99")
+              .addFields(
+                { name: "User", value: `<@${buyerId}>`, inline: true },
+                { name: "Username", value: buyerUsername, inline: true },
+                { name: "Item", value: item.name, inline: true },
+                { name: "Jumlah", value: `${qty}`, inline: true },
+                {
+                  name: "Total",
+                  value: `Rp${(item.price * qty).toLocaleString()}`,
+                },
+                { name: "Sisa Stok", value: `${item.stock}`, inline: true },
+                {
+                  name: "Diproses oleh",
+                  value: `<@${interaction.user.id}>`,
+                  inline: true,
+                }
+              )
+              .setTimestamp();
 
-          await logChannel.send({ embeds: [logEmbed] });
+            await logChannel.send({ embeds: [logEmbed] });
+          }
         } catch (e) {
           console.error("Order log error:", e.message);
         }
@@ -306,5 +307,3 @@ export default async (client, interaction) => {
     }
   }
 };
-
-
