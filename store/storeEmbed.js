@@ -1,3 +1,4 @@
+// store/storeEmbed.js
 import {
   EmbedBuilder,
   ActionRowBuilder,
@@ -7,17 +8,17 @@ import fs from "fs";
 
 const STORE_PATH = "./store/storeData.json";
 
-export function buildStoreEmbed(lastUpdate = Date.now()) {
+export function buildStoreEmbed(lastUpdateTs) {
   const data = JSON.parse(fs.readFileSync(STORE_PATH));
 
-  const secondsAgo = Math.floor((Date.now() - lastUpdate) / 1000);
+  const secondsAgo = Math.floor((Date.now() - lastUpdateTs) / 1000);
+  const updateText =
+    secondsAgo <= 1 ? "just now" : `${secondsAgo} seconds ago`;
 
   const embed = new EmbedBuilder()
     .setColor("#00FF99")
     .setTitle("📊 LIVE STOCK — JANESTORE")
-    .setDescription(
-      `🟢 Updated ${secondsAgo <= 1 ? "just now" : `${secondsAgo} seconds ago`}`
-    )
+    .setDescription(`🟢 Updated ${updateText}`)
     .setFooter({ text: "JANESTORE • Live Stock" })
     .setTimestamp();
 
@@ -29,12 +30,11 @@ export function buildStoreEmbed(lastUpdate = Date.now()) {
       name: "📦 Produk",
       value: "Belum ada produk tersedia",
     });
-
     return { embed, row: null };
   }
 
   // ==========================
-  // LIST ITEM (STOCK + SOLD)
+  // LIST ITEM
   // ==========================
   let text = "";
 
@@ -53,7 +53,7 @@ export function buildStoreEmbed(lastUpdate = Date.now()) {
   });
 
   // ==========================
-  // DROPDOWN PILIH ITEM
+  // DROPDOWN ORDER
   // ==========================
   const selectMenu = new StringSelectMenuBuilder()
     .setCustomId("store_select_item")
@@ -67,6 +67,5 @@ export function buildStoreEmbed(lastUpdate = Date.now()) {
     );
 
   const row = new ActionRowBuilder().addComponents(selectMenu);
-
   return { embed, row };
 }
