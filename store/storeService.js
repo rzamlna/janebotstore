@@ -1,55 +1,50 @@
-import {
-  EmbedBuilder,
-  ActionRowBuilder,
-  StringSelectMenuBuilder,
-} from "discord.js";
-import fs from "fs";
+import { buildStoreEmbed } from "./storeEmbed.js";
 
-const STORE_PATH = "./store/storeData.json";
+let storeMessage = null;
+let lastUpdate = Date.now();
 
-export function buildStoreEmbed(updatedText = "just now") {
-  const data = JSON.parse(fs.readFileSync(STORE_PATH));
-
-  const embed = new EmbedBuilder()
-    .setColor("#00FF99")
-    .setTitle("📊 LIVE STOCK — JANESTORE")
-    .setDescription(`🟢 Updated ${updatedText}`)
-    .setTimestamp();
-
-  if (!data.items || data.items.length === 0) {
-    embed.addFields({
-      name: "Kosong",
-      value: "Belum ada produk",
-    });
-    return { embed, row: null };
-  }
-
-  let text = "";
-  for (const item of data.items) {
-    text +=
-      `${item.name}\n` +
-      `Code  : ${item.code}\n` +
-      `Stock : ${item.stock}\n` +
-      `Sold  : ${item.sold ?? 0}\n` +
-      `Price : Rp${item.price.toLocaleString()}\n\n`;
-  }
-
-  embed.addFields({
-    name: "📦 Produk",
-    value: "```" + text + "```",
-  });
-
-  const select = new StringSelectMenuBuilder()
-    .setCustomId("store_select_item")
-    .setPlaceholder("Pilih item untuk order")
-    .addOptions(
-      data.items.map(i => ({
-        label: i.name,
-        value: i.code,
-        description: `Rp${i.price.toLocaleString()} | stok ${i.stock}`,
-      }))
-    );
-
-  const row = new ActionRowBuilder().addComponents(select);
-  return { embed, row };
+// ✅ INI YANG KAMU BUTUH
+export function markStoreUpdated() {
+  lastUpdate = Date.now();
 }
+
+// ✅ INI UNTUK INIT & AUTO REFRESH
+export async function initStore(client) {
+  const CHANNEL_ID = process.env.STORE_CHANNEL_ID;
+  if (!CHANNEL_ID) {
+    console.log("[STORE] STORE_CHANNEL_ID belum diset");
+    return;
+  }
+
+  const channel = await client.channels.fetch(CHANNEL_ID);
+  if (!channel?.isTextBased()) return;
+
+  const messages = await channel.messages.fetch({ limit: 5 });
+  storeMessage = messages.find(
+    m => m.author.id === client.user.id && m.embeds.length
+  );
+
+  if (!storeMessage) {
+    const { embed, row } = buildStoreEmbed("just now");
+    storeMessage = await channel.send({
+      embeds: [embed],
+      components: row ? [row] : [],
+    });
+  }
+
+  // 🔁 AUTO REFRESH TIAP 8 DETIK
+  setInterval(async () => {
+    try {
+      const seconds = Math.floor((Date.now() - lastUpdate) / 1000);
+      const label = seconds <= 1 ? "just now" : `${seconds} seconds ago`;
+
+      const { embed, row } = buildStoreEmbed(label);
+      await storeMessage.edit({
+        embeds: [embed],
+        components: row ? [row] : [],
+      });
+    } catch (e) {
+      console.error("[STORE] Refresh error:", e.message);
+    }
+  }, 8000);
+      }
