@@ -7,31 +7,41 @@ import fs from "fs";
 
 const STORE_PATH = "./store/storeData.json";
 
-export function buildStoreEmbed() {
+export function buildStoreEmbed(animation = ".") {
   const data = JSON.parse(fs.readFileSync(STORE_PATH));
 
   const embed = new EmbedBuilder()
     .setColor("#00FF99")
     .setTitle("📊 LIVE STOCK — JANESTORE")
-    .setDescription("🔄 Update otomatis setiap **5 detik**")
+    .setDescription(`🔄 Updating${animation}`)
     .setFooter({ text: "JANESTORE • Live Stock" })
     .setTimestamp();
 
+  // ==========================
+  // JIKA BELUM ADA ITEM
+  // ==========================
   if (!data.items || data.items.length === 0) {
     embed.addFields({
       name: "Belum ada item",
       value: "Admin belum menambahkan produk",
     });
+
     return { embed, row: null };
   }
 
+  // ==========================
+  // LIST ITEM + SOLD
+  // ==========================
   let stockText = "";
 
   for (const item of data.items) {
+    const sold = Number(item.sold ?? 0);
+
     stockText +=
       `${item.name}\n` +
       `ID    : ${item.code}\n` +
       `Stock : ${item.stock}\n` +
+      `Sold  : ${sold}\n` +
       `Price : Rp${item.price.toLocaleString()}\n\n`;
   }
 
@@ -40,6 +50,9 @@ export function buildStoreEmbed() {
     value: "```" + stockText + "```",
   });
 
+  // ==========================
+  // DROPDOWN PILIH ITEM
+  // ==========================
   const selectMenu = new StringSelectMenuBuilder()
     .setCustomId("store_select_item")
     .setPlaceholder("Pilih item untuk order")
@@ -54,4 +67,4 @@ export function buildStoreEmbed() {
   const row = new ActionRowBuilder().addComponents(selectMenu);
 
   return { embed, row };
-}
+    }
