@@ -11,7 +11,7 @@ import {
 import fs from "fs";
 
 const OWNER_ID = process.env.OWNER_ID;
-const STORE_TICKET_CATEGORY_ID = "1297178086969835661";
+const STORE_TICKET_CATEGORY_ID = "1111676525171986522";
 const STORE_PATH = "./store/storeData.json";
 const ORDER_LOG_CHANNEL_ID = process.env.ORDER_LOG_CHANNEL_ID;
 
@@ -307,3 +307,4 @@ export default async (client, interaction) => {
     }
   }
 };
+
