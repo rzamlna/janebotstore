@@ -7,64 +7,53 @@ import fs from "fs";
 
 const STORE_PATH = "./store/storeData.json";
 
-export function buildStoreEmbed(updatedAgo = "just now") {
+export function buildStoreEmbed() {
   const data = JSON.parse(fs.readFileSync(STORE_PATH));
 
   const embed = new EmbedBuilder()
     .setColor("#00FF99")
     .setTitle("📊 LIVE STOCK — JANESTORE")
-    .setDescription(`🟢 Updated ${updatedAgo}`)
+    .setDescription("🟢 Updated just now")
     .setFooter({ text: "JANESTORE • Live Stock" })
-    .setTimestamp();
+    .setTimestamp(); // ⬅️ PENTING (reset setiap refresh)
 
-  // ==========================
-  // JIKA BELUM ADA ITEM
-  // ==========================
   if (!data.items || data.items.length === 0) {
     embed.addFields({
-      name: "Belum ada item",
-      value: "Admin belum menambahkan produk",
+      name: "📦 Produk",
+      value: "Belum ada item",
     });
 
     return { embed, row: null };
   }
 
-  // ==========================
-  // LIST ITEM + SOLD
-  // ==========================
-  let stockText = "";
+  let text = "";
 
   for (const item of data.items) {
-    const sold = Number(item.sold ?? 0);
-
-    stockText +=
+    text +=
       `${item.name}\n` +
       `ID    : ${item.code}\n` +
       `Stock : ${item.stock}\n` +
-      `Sold  : ${sold}\n` +
+      `Sold  : ${item.sold ?? 0}\n` +
       `Price : Rp${item.price.toLocaleString()}\n\n`;
   }
 
   embed.addFields({
     name: "📦 Produk",
-    value: "```" + stockText + "```",
+    value: "```" + text + "```",
   });
 
-  // ==========================
-  // DROPDOWN PILIH ITEM
-  // ==========================
-  const selectMenu = new StringSelectMenuBuilder()
+  const select = new StringSelectMenuBuilder()
     .setCustomId("store_select_item")
     .setPlaceholder("Pilih item untuk order")
     .addOptions(
-      data.items.map((item) => ({
-        label: item.name,
-        value: item.code,
-        description: `Rp${item.price.toLocaleString()} | stok ${item.stock}`,
+      data.items.map(i => ({
+        label: i.name,
+        value: i.code,
+        description: `Rp${i.price.toLocaleString()} | stok ${i.stock}`,
       }))
     );
 
-  const row = new ActionRowBuilder().addComponents(selectMenu);
+  const row = new ActionRowBuilder().addComponents(select);
 
   return { embed, row };
 }
