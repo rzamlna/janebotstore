@@ -8,31 +8,20 @@ import {
 const STORE_PATH = "./store/storeData.json";
 const STORE_CHANNEL_ID = process.env.STORE_CHANNEL_ID;
 
-let lastUpdatedAt = Date.now();
+let storeDirty = true;
 let storeMessage = null;
 
-/**
- * Dipanggil oleh:
- * - /restock
- * - order_success
- */
+// dipanggil dari restock & order_success
 export function markStoreUpdated() {
-  lastUpdatedAt = Date.now();
+  storeDirty = true;
 }
 
-/**
- * INIT + AUTO REFRESH LIVE STOCK
- */
 export async function initStore(client) {
-  if (!STORE_CHANNEL_ID) {
-    console.log("❌ STORE_CHANNEL_ID belum diset");
-    return;
-  }
+  if (!STORE_CHANNEL_ID) return;
 
   const channel = await client.channels.fetch(STORE_CHANNEL_ID);
   if (!channel?.isTextBased()) return;
 
-  // cari message lama
   const msgs = await channel.messages.fetch({ limit: 5 });
   storeMessage = msgs.find(
     m => m.author.id === client.user.id && m.embeds.length
@@ -44,48 +33,35 @@ export async function initStore(client) {
       embeds: [embed],
       components: row ? [row] : [],
     });
+    storeDirty = false;
   }
 
-  // 🔁 refresh tiap 8 detik
+  // cek tiap 8 detik
   setInterval(async () => {
+    if (!storeDirty) return;
+
     try {
       const { embed, row } = buildStoreEmbed();
       await storeMessage.edit({
         embeds: [embed],
         components: row ? [row] : [],
       });
+      storeDirty = false;
     } catch (e) {
       console.error("Live stock update error:", e.message);
     }
   }, 8000);
 }
 
-/**
- * BUILD EMBED
- */
 function buildStoreEmbed() {
   const data = JSON.parse(fs.readFileSync(STORE_PATH));
-
-  const secondsAgo = Math.floor((Date.now() - lastUpdatedAt) / 1000);
-  const updatedText =
-    secondsAgo <= 1
-      ? "🟢 Updated just now"
-      : `🟢 Updated ${secondsAgo} seconds ago`;
 
   const embed = new EmbedBuilder()
     .setColor("#00FF99")
     .setTitle("📊 LIVE STOCK — JANESTORE")
-    .setDescription(updatedText)
+    .setDescription("🟢 Updated just now")
     .setFooter({ text: "JANESTORE • Live Stock" })
     .setTimestamp();
-
-  if (!data.items || data.items.length === 0) {
-    embed.addFields({
-      name: "Belum ada item",
-      value: "Admin belum menambahkan produk",
-    });
-    return { embed, row: null };
-  }
 
   let text = "";
   for (const item of data.items) {
@@ -99,7 +75,7 @@ function buildStoreEmbed() {
 
   embed.addFields({
     name: "📦 Produk",
-    value: "```" + text + "```",
+    value: "```" + (text || "-") + "```",
   });
 
   const select = new StringSelectMenuBuilder()
@@ -115,4 +91,4 @@ function buildStoreEmbed() {
 
   const row = new ActionRowBuilder().addComponents(select);
   return { embed, row };
-                    }
+}
