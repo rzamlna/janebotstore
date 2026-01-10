@@ -1,5 +1,6 @@
 import { SlashCommandBuilder, EmbedBuilder } from "discord.js";
 import fs from "fs";
+import { markStoreUpdated } from "../../store/storeService.js";
 
 const STORE_PATH = "./store/storeData.json";
 
@@ -47,13 +48,16 @@ export default {
 
     fs.writeFileSync(STORE_PATH, JSON.stringify(store, null, 2));
 
+    // 🔥 INI KUNCINYA (BIAR UPDATE LANGSUNG)
+    markStoreUpdated();
+
     await interaction.reply({
       content: `✅ **${item.name} (${item.code.toUpperCase()})** berhasil direstock (+${amount})`,
       ephemeral: true,
     });
 
     // ==========================
-    // WEBHOOK RESTOCK
+    // WEBHOOK RESTOCK (OPSIONAL)
     // ==========================
     const webhookUrl = process.env.RESTOCK_WEBHOOK_URL;
     if (!webhookUrl) return;
