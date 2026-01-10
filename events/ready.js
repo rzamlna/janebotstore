@@ -4,6 +4,9 @@ import { initStore } from "../store/storeService.js";
 const STATUS_CHANNEL_ID = process.env.STATUS_CHANNEL_ID;
 const GUILD_ID = process.env.GUILD_ID;
 
+// 🔥 PENTING: STATE WAKTU UPDATE
+let lastStatusUpdate = Date.now();
+
 export default async (client) => {
   console.log(`✅ Logged in as ${client.user.tag}`);
 
@@ -72,15 +75,18 @@ export default async (client) => {
         });
       }
 
+      // 🔁 UPDATE SETIAP 10 DETIK
       setInterval(async () => {
         try {
+          lastStatusUpdate = Date.now(); // ⬅️ RESET WAKTU UPDATE
+
           await statusMessage.edit({
             embeds: [buildStatusEmbed(client)],
           });
         } catch (err) {
           console.error("Status embed update failed:", err.message);
         }
-      }, 30000);
+      }, 10000);
 
       console.log("📊 Status embed initialized");
     } catch (err) {
@@ -123,7 +129,6 @@ function buildStatusEmbed(client) {
       { name: "Servers", value: `${client.guilds.cache.size}`, inline: true },
       { name: "Users", value: `${totalUsers}`, inline: true }
     )
-    .setFooter({ text: "Auto update every 30 seconds" })
+    .setFooter({ text: "Auto update every 10 seconds" })
     .setTimestamp();
 }
-
